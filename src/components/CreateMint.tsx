@@ -1,5 +1,7 @@
 import { useState } from "react"
-import { createMint } from '@solana/spl-token';
+import { createInitializeMint2Instruction, getMinimumBalanceForRentExemptMint, MINT_SIZE, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { Keypair, SystemProgram, Transaction } from "@solana/web3.js";
 
 export function CreateMint() {
     const [ tokenName, setTokenName ] = useState("");
@@ -7,8 +9,30 @@ export function CreateMint() {
     const [ imageUrl, setImageUrl ] = useState("");
     const [ initialSupply, setInitialSupply ] = useState(0);
 
+    const { connection } = useConnection();
+    const wallet = useWallet();
+
     async function createMint() {
+        const mintKeypair = Keypair.generate();                                             // creating account for new token
+        const lamports = await getMinimumBalanceForRentExemptMint(connection);
+
+        const transaction = new Transaction().add(
+            SystemProgram.createAccount({
+                fromPubkey: wallet.publicKey!,
+                newAccountPubkey: mintKeypair.publicKey,
+                lamports,
+                space: MINT_SIZE,                                   // std space
+                programId: TOKEN_PROGRAM_ID                         // token program using to mint
+            }),
+            createInitializeMint2Instruction(mintKeypair.publicKey, 9, wallet.publicKey!, wallet.publicKey!, TOKEN_PROGRAM_ID)
+        );
+
+        transaction.feePayer = wallet.publicKey!;
+        transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;        // in solana we have fetch recent block so that we can add ours nect to it
+        transaction.partialSign(mintKeypair);
         
+        await wallet.sendTransaction(transaction, connection);
+        alert(`Token mint created at ${mintKeypair.publicKey.toBase58()}`);
     }
 
     return <div>
