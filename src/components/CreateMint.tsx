@@ -28,7 +28,7 @@ export function CreateMint() {
         );
 
         transaction.feePayer = wallet.publicKey!;
-        transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;        // in solana we have fetch recent block so that we can add ours nect to it
+        transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;        // in solana we have to fetch recent block so that we can add ours to that recent block.
         transaction.partialSign(mintKeypair);
         
         await wallet.sendTransaction(transaction, connection);
